@@ -26,8 +26,13 @@ function Image({
   dynamicAspectRatio = false,
 }: GaleriaViewProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const { urls, theme } = useContext(GaleriaContext)
+  const { urls, theme, autoPlayVideo } = useContext(GaleriaContext)
   const item = urls?.[index]
+  const isVideo =
+    typeof item === 'object' &&
+    item !== null &&
+    'type' in item &&
+    item.type === 'video'
   const source =
     typeof item === 'object' && item !== null && 'source' in item
       ? item.source
@@ -36,6 +41,12 @@ function Image({
     typeof source === 'object' && source !== null && 'uri' in source
       ? source.uri
       : source
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [poster, setPoster] = useState<string>()
+  useEffect(() => {
+    const video = videoRef.current
+    return () => video?.pause()
+  }, [isOpen])
   const [aspectRatio, setAspectRatio] = useState(1)
   const id = useId()
   const getFirstImageChild = (node: Node): HTMLImageElement | null => {
@@ -63,8 +74,9 @@ function Image({
   const onClick = (
     e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
   ) => {
-    const imageNode = getFirstImageChild(e.target as Node)
+    const imageNode = getFirstImageChild(e.currentTarget)
     if (imageNode) {
+      setPoster(imageNode.currentSrc || imageNode.src)
       setIsOpen(true)
       const ratio = getNodeAspectRatio(imageNode)
       setAspectRatio(ratio)
@@ -111,6 +123,7 @@ Or, you might need something like alignItems: 'flex-start' to the parent element
         // onTouchStart={onClick}
         onClick={onClick}
         layoutId={id}
+        layout={isVideo ? 'preserve-aspect' : undefined}
       >
         {isValidElement(children)
           ? cloneElement(children, { draggable: false } as object)
@@ -150,7 +163,26 @@ Or, you might need something like alignItems: 'flex-start' to the parent element
                 animate={{ backgroundColor: background }}
                 exit={{ backgroundColor: background + '00' }}
               >
-                {url ? (
+                {url && isVideo ? (
+                  <motion.video
+                    ref={videoRef}
+                    layoutId={id}
+                    layout="preserve-aspect"
+                    src={url as string}
+                    poster={poster}
+                    controls
+                    playsInline
+                    autoPlay={autoPlayVideo}
+                    preload="metadata"
+                    onClick={(event) => event.stopPropagation()}
+                    onWheel={(event) => event.stopPropagation()}
+                    style={{
+                      width: dimensions.width,
+                      height: dimensions.height,
+                      objectFit: 'contain',
+                    }}
+                  />
+                ) : url ? (
                   <motion.img
                     layoutId={id}
                     style={{
