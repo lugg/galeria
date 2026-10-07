@@ -88,6 +88,52 @@ export const MutliImage = ({ style }) => (
 )
 ```
 
+### Photos and Videos
+*iOS only*
+
+Pass `{ type: 'video', source }` entries alongside photos in `urls`. Existing image
+URLs and local image assets still work. A typed entry's `source` accepts a URL
+string, a bundled asset such as `require('./video.mp4')`, or `{ uri: string }`
+for remote and local file URIs. `Galeria.Item` is an alias for
+`Galeria.Image` and accepts the same props.
+
+```tsx
+import { Galeria, type MediaSource } from '@nandorojo/galeria'
+import { Image } from 'react-native'
+
+const media: MediaSource[] = [
+  { type: 'photo', source: 'https://example.com/photo.jpg' },
+  { type: 'video', source: 'https://example.com/video.mp4' },
+]
+const thumbnails = [
+  'https://example.com/photo.jpg',
+  'https://example.com/video-poster.jpg',
+]
+
+export const MixedGallery = () => (
+  <Galeria urls={media} autoPlayVideo={false}>
+    {thumbnails.map((uri, index) => (
+      <Galeria.Item index={index} key={uri}>
+        <Image source={{ uri }} style={{ width: 120, height: 120 }} />
+      </Galeria.Item>
+    ))}
+  </Galeria>
+)
+```
+
+Videos open paused by default. Set `autoPlayVideo` to start playback when a video
+page becomes active. Playback uses native AVKit controls; tap the video to reveal
+them. Playback pauses when leaving the page, dismissing the viewer, or putting
+the app in the background.
+
+Provide your own thumbnail image, either from your server or generated in your
+app. Galeria reuses the loaded image from the mounted item as the video's poster
+and transition image. It does not extract video thumbnails. If the item is not
+mounted or its image has not loaded, the poster may be unavailable.
+
+Video playback is not implemented on Android or web. Supply image-only galleries
+on those platforms.
+
 ### Dark Mode
 
 ```tsx

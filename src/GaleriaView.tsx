@@ -10,7 +10,6 @@ import {
   cloneElement,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { useWindowDimensions } from 'react-native' // TODO: remove this
 
 import { GaleriaViewProps } from './Galeria.types'
 import type Native from './GaleriaView.ios'
@@ -27,7 +26,15 @@ function Image({
 }: GaleriaViewProps) {
   const [isOpen, setIsOpen] = useState(false)
   const { urls, theme } = useContext(GaleriaContext)
-  const url = urls?.[index]
+  const item = urls?.[index]
+  const source =
+    typeof item === 'object' && item !== null && 'source' in item
+      ? item.source
+      : item
+  const url =
+    typeof source === 'object' && source !== null && 'uri' in source
+      ? source.uri
+      : source
   const [aspectRatio, setAspectRatio] = useState(1)
   const id = useId()
   const getFirstImageChild = (node: Node): HTMLImageElement | null => {
@@ -199,6 +206,7 @@ function Root({
   children,
   urls,
   theme = 'dark',
+  autoPlayVideo = false,
   ids,
 }: ComponentProps<typeof Native>) {
   const [openState, setOpen] = useState({
@@ -215,6 +223,7 @@ function Root({
   return (
     <GaleriaContext.Provider
       value={{
+        autoPlayVideo,
         hideBlurOverlay: false,
         hidePageIndicators: false,
         closeIconName: undefined,
@@ -240,6 +249,32 @@ function Root({
       </LayoutGroup>
     </GaleriaContext.Provider>
   )
+}
+
+function getWindowDimensions() {
+  // same measurement as react-native-web's Dimensions, without depending on react-native
+  const { visualViewport } = window
+  if (visualViewport) {
+    return {
+      width: Math.round(visualViewport.width * visualViewport.scale),
+      height: Math.round(visualViewport.height * visualViewport.scale),
+    }
+  }
+  return {
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  }
+}
+
+function useWindowDimensions() {
+  const [dimensions, setDimensions] = useState(getWindowDimensions)
+  useEffect(() => {
+    const target = window.visualViewport ?? window
+    const onResize = () => setDimensions(getWindowDimensions())
+    target.addEventListener('resize', onResize)
+    return () => target.removeEventListener('resize', onResize)
+  }, [])
+  return dimensions
 }
 
 function WindowDimensions({
@@ -311,6 +346,7 @@ function PopupModal({
 
 const Galeria: typeof Native = Object.assign(Root, {
   Image,
+  Item: Image,
   Popup: () => null,
 })
 
